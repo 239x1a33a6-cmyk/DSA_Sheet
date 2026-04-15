@@ -10,7 +10,7 @@ import toast from 'react-hot-toast'
 
 export default function Topics() {
     const { user } = useAuthStore()
-    const { topics, fetchTopics, addTopic, deleteTopic, updateTopic } = useTopicStore()
+    const { topics, fetchTopics, addTopic, deleteTopic, updateTopic, subscribeTopics } = useTopicStore()
     const { questions, statuses, fetchAllQuestions, fetchStatuses } = useQuestionStore()
 
     const [showAdd, setShowAdd] = useState(false)

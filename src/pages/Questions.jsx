@@ -10,7 +10,7 @@ import { useAuthStore } from '../store/useAuthStore'
 
 export default function Questions() {
     const { user } = useAuthStore()
-    const { questions, fetchAllQuestions, statuses, fetchStatuses } = useQuestionStore()
+    const { questions, fetchAllQuestions, statuses, fetchStatuses, subscribeQuestions, addQuestion } = useQuestionStore()
     const { topics, fetchTopics } = useTopicStore()
 
     const [showAdd, setShowAdd] = useState(false)
