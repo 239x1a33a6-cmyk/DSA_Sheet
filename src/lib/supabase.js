@@ -12,6 +12,7 @@ const isValidUrl = (url) => {
 }
 
 let supabaseClient;
+let isPlaceholder = false;
 
 if (isValidUrl(supabaseUrl) && supabaseAnonKey) {
     supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
@@ -21,11 +22,12 @@ if (isValidUrl(supabaseUrl) && supabaseAnonKey) {
         },
     })
 } else {
+    isPlaceholder = true;
     console.warn('⚠️ Supabase env vars not configured or invalid. Providing dummy client.')
-    // Fallback dummy client that doesn't throw on init but will fail on calls
     supabaseClient = createClient('https://placeholder-project.supabase.co', 'placeholder-key', {
         auth: { persistSession: false }
     })
 }
 
 export const supabase = supabaseClient
+export const SUPABASE_IS_CONFIGURED = !isPlaceholder
