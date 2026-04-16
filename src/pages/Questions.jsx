@@ -15,9 +15,11 @@ export default function Questions() {
     const { topicId } = useParams()
     const navigate = useNavigate()
     const { questions, fetchAllQuestions, statuses, fetchStatuses, subscribeQuestions, addQuestion } = useQuestionStore()
-    const { topics, fetchTopics } = useTopicStore()
+    const { topics, fetchTopics, addTopic, subscribeTopics } = useTopicStore()
 
     const [showAdd, setShowAdd] = useState(false)
+    const [showAddSub, setShowAddSub] = useState(false)
+    const [topicName, setTopicName] = useState('')
     const [search, setSearch] = useState('')
     const [diffFilter, setDiffFilter] = useState('All')
     const [topicFilter, setTopicFilter] = useState(topicId || 'All')
@@ -31,8 +33,12 @@ export default function Questions() {
         fetchTopics()
         if (user) fetchStatuses(user.id)
 
-        const unsubscribe = subscribeQuestions()
-        return unsubscribe
+        const unsubQ = subscribeQuestions()
+        const unsubT = subscribeTopics()
+        return () => {
+            unsubQ?.()
+            unsubT?.()
+        }
     }, [user])
 
     const currentTopic = useMemo(() => {
@@ -70,6 +76,19 @@ export default function Questions() {
 
     const isShowingSubtopics = subTopics.length > 0 && (topicFilter === 'All' || topicFilter === topicId)
 
+    const handleAddSubtopic = async (e) => {
+        e.preventDefault()
+        const name = topicName.trim()
+        if (!name || !topicId) return
+
+        setShowAddSub(false)
+        setTopicName('')
+        const toastId = toast.loading('Expanding cluster...')
+        const { error } = await addTopic(name, user.id, topicId)
+        if (error) toast.error(error.message, { id: toastId })
+        else toast.success('✨ Sub-cluster launched', { id: toastId })
+    }
+
     return (
         <Layout
             title={currentTopic ? currentTopic.name : "Question Library"}
@@ -80,9 +99,15 @@ export default function Questions() {
                             <ChevronLeft size={14} /> Back
                         </button>
                     )}
-                    <button onClick={() => setShowAdd(true)} className="btn-primary px-6 font-bold uppercase tracking-widest text-[10px]">
-                        <Plus size={14} /> New Question
-                    </button>
+                    {isShowingSubtopics ? (
+                        <button onClick={() => { setTopicName(''); setShowAddSub(true) }} className="btn-primary px-6 font-bold uppercase tracking-widest text-[10px] bg-indigo-600 hover:bg-indigo-700">
+                            <Plus size={14} /> Add Sub-cluster
+                        </button>
+                    ) : (
+                        <button onClick={() => setShowAdd(true)} className="btn-primary px-6 font-bold uppercase tracking-widest text-[10px]">
+                            <Plus size={14} /> New Question
+                        </button>
+                    )}
                 </div>
             }
         >
@@ -155,6 +180,7 @@ export default function Questions() {
             <Modal isOpen={showAdd} onClose={() => setShowAdd(false)} title="New Question">
                 <QuestionForm
                     topics={topics}
+                    initialTopicId={topicId}
                     onSubmit={async (data) => {
                         // Close modal and show success message eagerly for better UX
                         setShowAdd(false)
@@ -170,6 +196,20 @@ export default function Questions() {
                     }}
                     onCancel={() => setShowAdd(false)}
                 />
+            </Modal>
+
+            <Modal isOpen={showAddSub} onClose={() => setShowAddSub(false)} title={`Add Sub-cluster to ${currentTopic?.name}`}>
+                <form onSubmit={handleAddSubtopic} className="space-y-8 p-2">
+                    <div className="space-y-2">
+                        <label className="label text-[10px] font-black uppercase tracking-widest text-slate-400">Sub-cluster Name</label>
+                        <input className="input h-14 pl-6" placeholder="e.g. Tree Traversal" value={topicName}
+                            onChange={e => setTopicName(e.target.value)} autoFocus required />
+                    </div>
+                    <div className="flex gap-4">
+                        <button type="submit" className="btn-primary h-14 flex-1 font-black uppercase tracking-widest text-xs">Launch Sub-cluster</button>
+                        <button type="button" onClick={() => setShowAddSub(false)} className="btn-secondary h-14 px-8 font-black uppercase tracking-widest text-xs">Abort</button>
+                    </div>
+                </form>
             </Modal>
         </Layout>
     )

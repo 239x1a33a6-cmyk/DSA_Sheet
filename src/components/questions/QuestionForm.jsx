@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { DIFFICULTY } from '../../utils/constants'
 
-export default function QuestionForm({ onSubmit, onSuccess, onCancel, initial = {}, topics }) {
+export default function QuestionForm({ onSubmit, onSuccess, onCancel, initial = {}, topics, initialTopicId }) {
     const [form, setForm] = useState({
         title: initial.title || '',
         link: initial.link || '',
         difficulty: initial.difficulty || 'Easy',
-        topic_id: initial.topic_id || (topics[0]?.id || ''),
+        topic_id: initial.topic_id || initialTopicId || (topics[0]?.id || ''),
         tags: initial.tags?.join(', ') || '',
         shared_notes: initial.shared_notes || initial.notes || '',
     })
