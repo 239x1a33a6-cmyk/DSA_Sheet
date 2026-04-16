@@ -75,7 +75,10 @@ export default function Questions() {
         })
     }, [questions, search, diffFilter, topicFilter])
 
-    const isShowingSubtopics = subTopics.length > 0 && (topicFilter === 'All' || topicFilter === topicId)
+    // STRICT LOGIC: If a topic has subtopics, we ONLY show subtopics.
+    // We only show questions if there are NO subtopics.
+    const isShowingSubtopics = subTopics.length > 0
+    const hasQuestions = filtered.length > 0
 
     const handleAddSubtopic = async (e) => {
         e.preventDefault()
@@ -86,8 +89,11 @@ export default function Questions() {
         setTopicName('')
         const toastId = toast.loading('Expanding cluster...')
         const { error } = await addTopic(name, user.id, topicId)
-        if (error) toast.error(error.message, { id: toastId })
-        else toast.success('✨ Sub-cluster launched', { id: toastId })
+        if (error) {
+            toast.error(`Expansion failed: ${error.message}. Please check if you ran the SQL migration.`, { id: toastId, duration: 5000 })
+        } else {
+            toast.success('✨ Sub-cluster launched', { id: toastId })
+        }
     }
 
     return (
@@ -100,7 +106,7 @@ export default function Questions() {
                             <button onClick={() => navigate('/topics')} className="btn-secondary px-4 text-[10px] font-black uppercase tracking-widest hidden sm:flex">
                                 <ChevronLeft size={14} /> Back
                             </button>
-                            <button onClick={() => { setTopicName(''); setShowAddSub(true) }} className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-indigo-900/40 text-slate-600 dark:text-indigo-400 px-4 rounded-lg flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all">
+                            <button onClick={() => { setTopicName(''); setShowAddSub(true) }} className="btn-primary bg-indigo-600 hover:bg-indigo-700 px-4 text-[10px] font-black uppercase tracking-widest">
                                 <Plus size={14} /> Add Sub
                             </button>
                         </>
@@ -111,18 +117,16 @@ export default function Questions() {
                 </div>
             }
         >
-            <div className="space-y-10 animate-in max-w-7xl mx-auto pb-20">
-                {isShowingSubtopics && (
-                    <div className="space-y-6">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center text-primary-500">
-                                    <Layers size={20} />
-                                </div>
-                                <div>
-                                    <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Sub-clusters</h2>
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Branches of {currentTopic?.name}</p>
-                                </div>
+            <div className="space-y-12 animate-in max-w-7xl mx-auto pb-20">
+                {isShowingSubtopics ? (
+                    <div className="space-y-8">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-500">
+                                <Layers size={20} />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Explore Sub-clusters</h2>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Select a branch of {currentTopic?.name} to view challenges</p>
                             </div>
                         </div>
 
@@ -139,10 +143,21 @@ export default function Questions() {
                             ))}
                         </div>
                     </div>
-                )}
+                ) : (
+                    <div className="space-y-10">
+                        {/* Empty/Leaf State Header if topicId is present */}
+                        {topicId && (
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                                    <BookOpen size={20} />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Challenges</h2>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Direct questions in {currentTopic?.name}</p>
+                                </div>
+                            </div>
+                        )}
 
-                {!isShowingSubtopics && (
-                    <div className="space-y-8">
                         {/* Filters */}
                         <div className="flex flex-col md:flex-row gap-4">
                             <div className="relative flex-1">
@@ -164,9 +179,9 @@ export default function Questions() {
                             </div>
                         </div>
 
-                        {/* List */}
+                        {/* Question List */}
                         <div className="space-y-4">
-                            {filtered.length > 0 ? (
+                            {hasQuestions ? (
                                 <div className="grid gap-4">
                                     {filtered.map(q => (
                                         <QuestionCard key={q.id} question={q} showTopic />
@@ -175,14 +190,17 @@ export default function Questions() {
                             ) : (
                                 <div className="text-center py-20 bg-slate-50/50 dark:bg-slate-900/20 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl">
                                     <BookOpen size={48} className="text-slate-200 dark:text-slate-800 mx-auto mb-6" />
-                                    <h3 className="text-sm font-black text-slate-400 uppercase tracking-[0.2em] mb-4">No challenges detected</h3>
+                                    <h3 className="text-sm font-black text-slate-400 uppercase tracking-[0.2em] mb-2">No direct challenges yet</h3>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-6">Create your first challenge or add a sub-cluster branch</p>
                                     <div className="flex items-center justify-center gap-4">
-                                        <button onClick={() => setShowAdd(true)} className="text-[10px] font-black uppercase tracking-widest text-primary-500 hover:text-primary-600">
+                                        <button onClick={() => setShowAdd(true)} className="btn-primary px-6 py-2 text-[10px] font-black uppercase tracking-widest">
                                             + Add Question
                                         </button>
-                                        <button onClick={() => setShowAddSub(true)} className="text-[10px] font-black uppercase tracking-widest text-indigo-500 hover:text-indigo-600">
-                                            + Add Sub-cluster
-                                        </button>
+                                        {topicId && (
+                                            <button onClick={() => setShowAddSub(true)} className="btn-secondary px-6 py-2 text-[10px] font-black uppercase tracking-widest border-indigo-500/50 text-indigo-500">
+                                                + Add Sub-cluster
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             )}
