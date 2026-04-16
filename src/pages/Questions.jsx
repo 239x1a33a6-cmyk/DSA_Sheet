@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Plus, Search, Filter, ChevronLeft, Layers } from 'lucide-react'
+import { Plus, Search, Filter, ChevronLeft, Layers, BookOpen } from 'lucide-react'
 import Layout from '../components/layout/Layout'
 import QuestionCard from '../components/questions/QuestionCard'
+import TopicCard from '../components/topics/TopicCard'
 import QuestionForm from '../components/questions/QuestionForm'
 import Modal from '../components/ui/Modal'
 import { useQuestionStore } from '../store/useQuestionStore'
@@ -43,6 +44,21 @@ export default function Questions() {
         return topics.filter(t => t.parent_id === topicId)
     }, [topics, topicId])
 
+    const topicStats = useMemo(() => {
+        const map = {}
+        topics.forEach(t => {
+            const qs = questions.filter(q => q.topic_id === t.id)
+            const contributors = new Set(qs.map(q => q.created_by).filter(Boolean))
+
+            map[t.id] = {
+                total: qs.length,
+                solved: qs.filter(q => statuses[q.id]?.status === 'solved').length,
+                contributors: contributors.size
+            }
+        })
+        return map
+    }, [topics, questions, statuses])
+
     const filtered = useMemo(() => {
         return questions.filter(q => {
             const matchesSearch = q.title.toLowerCase().includes(search.toLowerCase())
@@ -51,6 +67,8 @@ export default function Questions() {
             return matchesSearch && matchesDiff && matchesTopic
         })
     }, [questions, search, diffFilter, topicFilter])
+
+    const isShowingSubtopics = subTopics.length > 0 && (topicFilter === 'All' || topicFilter === topicId)
 
     return (
         <Layout
@@ -68,61 +86,70 @@ export default function Questions() {
                 </div>
             }
         >
-            <div className="space-y-8 animate-in max-w-7xl mx-auto">
-                {subTopics.length > 0 && (
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                            <Layers size={14} />
-                            Sub-clusters in {currentTopic?.name}
+            <div className="space-y-8 animate-in max-w-7xl mx-auto pb-20">
+                {isShowingSubtopics ? (
+                    <div className="space-y-6">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center text-primary-500">
+                                <Layers size={20} />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Explore Sub-clusters</h2>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Select a specific branch to view challenges</p>
+                            </div>
                         </div>
-                        <div className="flex flex-wrap gap-3">
-                            {subTopics.map(st => (
-                                <button
-                                    key={st.id}
-                                    onClick={() => navigate(`/topics/${st.id}`)}
-                                    className="px-4 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-400 hover:border-primary-500 hover:text-primary-500 transition-all shadow-sm"
-                                >
-                                    {st.name}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                )}
-                {/* Filters */}
-                <div className="flex flex-col md:flex-row gap-4">
-                    <div className="relative flex-1">
-                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                        <input className="input pl-10 h-10 text-xs font-semibold"
-                            placeholder="Find questions..."
-                            value={search} onChange={e => setSearch(e.target.value)} />
-                    </div>
-                    <div className="flex gap-2">
-                        <select className="input h-10 text-xs font-bold uppercase tracking-wider w-32 px-4"
-                            value={diffFilter} onChange={e => setDiffFilter(e.target.value)}>
-                            {['All', 'Easy', 'Medium', 'Hard'].map(d => <option key={d} value={d}>{d}</option>)}
-                        </select>
-                        <select className="input h-10 text-xs font-bold uppercase tracking-wider min-w-[140px] px-4"
-                            value={topicFilter} onChange={e => setTopicFilter(e.target.value)}>
-                            <option value="All">All Topics</option>
-                            {topics.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                        </select>
-                    </div>
-                </div>
 
-                {/* List */}
-                <div className="space-y-4">
-                    {filtered.length > 0 ? (
-                        <div className="grid gap-4">
-                            {filtered.map(q => (
-                                <QuestionCard key={q.id} question={q} showTopic />
+                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {subTopics.map(st => (
+                                <TopicCard
+                                    key={st.id}
+                                    topic={st}
+                                    stats={topicStats[st.id]}
+                                    canManage={false}
+                                />
                             ))}
                         </div>
-                    ) : (
-                        <div className="text-center py-20 border-2 border-dashed border-slate-100 rounded-xl">
-                            <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">No results found</span>
+                    </div>
+                ) : (
+                    <>
+                        {/* Filters */}
+                        <div className="flex flex-col md:flex-row gap-4">
+                            <div className="relative flex-1">
+                                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                <input className="input pl-10 h-10 text-xs font-semibold"
+                                    placeholder="Find questions..."
+                                    value={search} onChange={e => setSearch(e.target.value)} />
+                            </div>
+                            <div className="flex gap-2">
+                                <select className="input h-10 text-xs font-bold uppercase tracking-wider w-32 px-4"
+                                    value={diffFilter} onChange={e => setDiffFilter(e.target.value)}>
+                                    {['All', 'Easy', 'Medium', 'Hard'].map(d => <option key={d} value={d}>{d}</option>)}
+                                </select>
+                                <select className="input h-10 text-xs font-bold uppercase tracking-wider min-w-[140px] px-4"
+                                    value={topicFilter} onChange={e => setTopicFilter(e.target.value)}>
+                                    <option value="All">All Topics</option>
+                                    {topics.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                </select>
+                            </div>
                         </div>
-                    )}
-                </div>
+
+                        {/* List */}
+                        <div className="space-y-4">
+                            {filtered.length > 0 ? (
+                                <div className="grid gap-4">
+                                    {filtered.map(q => (
+                                        <QuestionCard key={q.id} question={q} showTopic />
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-20 border-2 border-dashed border-slate-100 rounded-xl">
+                                    <BookOpen size={48} className="text-slate-100 dark:text-slate-800 mx-auto mb-4" />
+                                    <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">No challenges found here</span>
+                                </div>
+                            )}
+                        </div>
+                    </>
+                )}
             </div>
 
             <Modal isOpen={showAdd} onClose={() => setShowAdd(false)} title="New Question">
