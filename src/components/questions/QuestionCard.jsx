@@ -88,7 +88,7 @@ export default function QuestionCard({ question, showTopic = false }) {
                                     <a href={question.link} target="_blank" rel="noopener noreferrer"
                                         className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-400 hover:text-[#FFA116]"
                                         onClick={e => e.stopPropagation()}>
-                                        {isLeetCode ? <LeetCodeIcon size={16} /> : <ExternalLink size={16} />}
+                                        {isLeetCode ? <LeetCodeIcon size={14} /> : <ExternalLink size={14} />}
                                     </a>
                                 )}
                             </div>
@@ -110,7 +110,7 @@ export default function QuestionCard({ question, showTopic = false }) {
                                     <a href={question.link} target="_blank" rel="noopener noreferrer"
                                         className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-400 hover:text-[#FFA116]"
                                         onClick={e => e.stopPropagation()}>
-                                        {isLeetCode ? <LeetCodeIcon size={18} /> : <ExternalLink size={18} />}
+                                        {isLeetCode ? <LeetCodeIcon size={16} /> : <ExternalLink size={16} />}
                                     </a>
                                 )}
                             </div>
