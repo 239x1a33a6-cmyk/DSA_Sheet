@@ -7,6 +7,18 @@ import { useAuthStore } from '../../store/useAuthStore'
 import { useQuestionStore } from '../../store/useQuestionStore'
 import toast from 'react-hot-toast'
 
+const LeetCodeIcon = ({ size = 16 }) => (
+    <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        className="transition-transform hover:scale-110"
+    >
+        <path d="M13.483 0a1.374 1.374 0 0 0-.961.414l-9.774 9.774a1.374 1.374 0 1 0 1.94 1.94L14.46 2.355a1.374 1.374 0 0 0-1.942-1.941l-.961-.414h-.074zm-3.21 21.312l-1.42 1.42a1.374 1.374 0 0 1-1.94 0l-3.35-3.35a1.374 1.374 0 0 1 0-1.94l1.42-1.42a1.374 1.374 0 0 1 1.94 0l3.35 3.35a1.374 1.374 0 0 1 0 1.94zM23.425 9.043l-2.03-2.03a1.374 1.374 0 0 0-1.94 0l-10.43 10.43a1.374 1.374 0 1 0 1.94 1.94l10.43-10.43a1.374 1.374 0 0 0 0-1.94zm-14.93 9.45l-1.94 1.94-1.94-1.94 1.94-1.94 1.94 1.94z" />
+    </svg>
+)
+
 export default function QuestionCard({ question, showTopic = false }) {
     const { user } = useAuthStore()
     const { statuses, setStatus, toggleBookmark, fetchQuestionSolvers, questionSolvers } = useQuestionStore()
@@ -46,6 +58,8 @@ export default function QuestionCard({ question, showTopic = false }) {
 
     const addedBy = question.profiles?.name || 'Group member'
 
+    const isLeetCode = question.link?.toLowerCase().includes('leetcode.com')
+
     return (
         <div
             className={`group card overflow-hidden border-l-4 transition-all duration-300 hover:shadow-md dark:bg-slate-900/50 ${currentStatus === 'solved' ? 'border-emerald-500' : currentStatus === 'revisit' ? 'border-amber-500' : currentStatus === 'hard' ? 'border-purple-500' : 'border-slate-200 dark:border-slate-800'}`}
@@ -69,9 +83,9 @@ export default function QuestionCard({ question, showTopic = false }) {
                                 </button>
                                 {question.link && (
                                     <a href={question.link} target="_blank" rel="noopener noreferrer"
-                                        className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-400 hover:text-primary-500"
+                                        className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-400 hover:text-[#FFA116]"
                                         onClick={e => e.stopPropagation()}>
-                                        <ExternalLink size={16} />
+                                        {isLeetCode ? <LeetCodeIcon size={16} /> : <ExternalLink size={16} />}
                                     </a>
                                 )}
                             </div>
@@ -91,9 +105,9 @@ export default function QuestionCard({ question, showTopic = false }) {
                                 </button>
                                 {question.link && (
                                     <a href={question.link} target="_blank" rel="noopener noreferrer"
-                                        className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-400 hover:text-primary-500"
+                                        className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-400 hover:text-[#FFA116]"
                                         onClick={e => e.stopPropagation()}>
-                                        <ExternalLink size={16} />
+                                        {isLeetCode ? <LeetCodeIcon size={18} /> : <ExternalLink size={18} />}
                                     </a>
                                 )}
                             </div>
