@@ -18,20 +18,23 @@ export const useTopicStore = create((set, get) => ({
         set({ loading: false })
     },
 
-    addTopic: async (name, userId) => {
+    addTopic: async (name, userId, parentId = null) => {
         const { data, error } = await supabase
             .from('topics')
-            .insert({ name, created_by: userId, is_predefined: false })
+            .insert({ name, created_by: userId, is_predefined: false, parent_id: parentId })
             .select()
             .single()
         if (!error && data) set({ topics: [...get().topics, data] })
         return { data, error }
     },
 
-    updateTopic: async (id, name) => {
+    updateTopic: async (id, name, parentId = null) => {
+        const updateData = { name }
+        if (parentId !== undefined) updateData.parent_id = parentId
+
         const { data, error } = await supabase
             .from('topics')
-            .update({ name })
+            .update(updateData)
             .eq('id', id)
             .select()
             .single()

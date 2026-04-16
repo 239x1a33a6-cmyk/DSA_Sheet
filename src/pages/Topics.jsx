@@ -17,6 +17,7 @@ export default function Topics() {
     const [showRename, setShowRename] = useState(false)
     const [selectedTopic, setSelectedTopic] = useState(null)
     const [topicName, setTopicName] = useState('')
+    const [parentId, setParentId] = useState('')
     const [search, setSearch] = useState('')
 
     useEffect(() => {
@@ -44,7 +45,10 @@ export default function Topics() {
         return map
     }, [topics, questions, statuses])
 
-    const filtered = topics.filter(t => t.name.toLowerCase().includes(search.toLowerCase()))
+    const filtered = topics.filter(t =>
+        !t.parent_id &&
+        t.name.toLowerCase().includes(search.toLowerCase())
+    )
 
     const handleAddTopic = async (e) => {
         e.preventDefault()
@@ -58,9 +62,10 @@ export default function Topics() {
         // Eager UI updates
         setShowAdd(false)
         setTopicName('')
+        setParentId('')
         const toastId = toast.loading('Establishing cluster...')
 
-        const { error } = await addTopic(name, user?.id)
+        const { error } = await addTopic(name, user?.id, parentId || null)
         if (error) toast.error(`Refraction failed: ${error.message}`, { id: toastId })
         else toast.success('✨ New cluster established', { id: toastId })
     }
@@ -146,10 +151,25 @@ export default function Topics() {
             {/* Add Modal */}
             <Modal isOpen={showAdd} onClose={() => setShowAdd(false)} title="Add Cluster">
                 <form onSubmit={handleAddTopic} className="space-y-8 p-2">
-                    <div className="space-y-2">
-                        <label className="label">Cluster Designation</label>
-                        <input className="input h-14 pl-6" placeholder="e.g. Dynamic Programming" value={topicName}
-                            onChange={e => setTopicName(e.target.value)} autoFocus required />
+                    <div className="space-y-6">
+                        <div className="space-y-2">
+                            <label className="label text-[10px] font-black uppercase tracking-widest text-slate-400">Cluster Designation</label>
+                            <input className="input h-14 pl-6" placeholder="e.g. Dynamic Programming" value={topicName}
+                                onChange={e => setTopicName(e.target.value)} autoFocus required />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="label text-[10px] font-black uppercase tracking-widest text-slate-400">Parent Cluster (Optional)</label>
+                            <select
+                                className="input h-14 px-6 w-full appearance-none bg-white dark:bg-slate-900"
+                                value={parentId}
+                                onChange={e => setParentId(e.target.value)}
+                            >
+                                <option value="">No Parent (Top-level)</option>
+                                {topics.filter(t => !t.parent_id).map(t => (
+                                    <option key={t.id} value={t.id}>{t.name}</option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
                     <div className="flex gap-4">
                         <button type="submit" className="btn-primary h-14 flex-1 font-black uppercase tracking-widest text-xs">Establish Cluster</button>

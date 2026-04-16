@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Plus, Search, Filter } from 'lucide-react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { Plus, Search, Filter, ChevronLeft, Layers } from 'lucide-react'
 import Layout from '../components/layout/Layout'
 import QuestionCard from '../components/questions/QuestionCard'
 import QuestionForm from '../components/questions/QuestionForm'
@@ -10,13 +11,19 @@ import { useAuthStore } from '../store/useAuthStore'
 
 export default function Questions() {
     const { user } = useAuthStore()
+    const { topicId } = useParams()
+    const navigate = useNavigate()
     const { questions, fetchAllQuestions, statuses, fetchStatuses, subscribeQuestions, addQuestion } = useQuestionStore()
     const { topics, fetchTopics } = useTopicStore()
 
     const [showAdd, setShowAdd] = useState(false)
     const [search, setSearch] = useState('')
     const [diffFilter, setDiffFilter] = useState('All')
-    const [topicFilter, setTopicFilter] = useState('All')
+    const [topicFilter, setTopicFilter] = useState(topicId || 'All')
+
+    useEffect(() => {
+        setTopicFilter(topicId || 'All')
+    }, [topicId])
 
     useEffect(() => {
         fetchAllQuestions()
@@ -26,6 +33,15 @@ export default function Questions() {
         const unsubscribe = subscribeQuestions()
         return unsubscribe
     }, [user])
+
+    const currentTopic = useMemo(() => {
+        return topics.find(t => t.id === topicId)
+    }, [topics, topicId])
+
+    const subTopics = useMemo(() => {
+        if (!topicId) return []
+        return topics.filter(t => t.parent_id === topicId)
+    }, [topics, topicId])
 
     const filtered = useMemo(() => {
         return questions.filter(q => {
@@ -38,14 +54,40 @@ export default function Questions() {
 
     return (
         <Layout
-            title="Question Library"
+            title={currentTopic ? currentTopic.name : "Question Library"}
             actions={
-                <button onClick={() => setShowAdd(true)} className="btn-primary px-6 font-bold uppercase tracking-widest text-[10px]">
-                    <Plus size={14} /> New Question
-                </button>
+                <div className="flex gap-2">
+                    {topicId && (
+                        <button onClick={() => navigate('/topics')} className="btn-secondary px-4 text-[10px] font-black uppercase tracking-widest">
+                            <ChevronLeft size={14} /> Back
+                        </button>
+                    )}
+                    <button onClick={() => setShowAdd(true)} className="btn-primary px-6 font-bold uppercase tracking-widest text-[10px]">
+                        <Plus size={14} /> New Question
+                    </button>
+                </div>
             }
         >
             <div className="space-y-8 animate-in max-w-7xl mx-auto">
+                {subTopics.length > 0 && (
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                            <Layers size={14} />
+                            Sub-clusters in {currentTopic?.name}
+                        </div>
+                        <div className="flex flex-wrap gap-3">
+                            {subTopics.map(st => (
+                                <button
+                                    key={st.id}
+                                    onClick={() => navigate(`/topics/${st.id}`)}
+                                    className="px-4 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-400 hover:border-primary-500 hover:text-primary-500 transition-all shadow-sm"
+                                >
+                                    {st.name}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
                 {/* Filters */}
                 <div className="flex flex-col md:flex-row gap-4">
                     <div className="relative flex-1">
