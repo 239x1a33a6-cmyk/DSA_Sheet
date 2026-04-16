@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Plus, Search, Filter, ChevronLeft, Layers, BookOpen } from 'lucide-react'
+import { toast } from 'react-hot-toast'
 import Layout from '../components/layout/Layout'
 import QuestionCard from '../components/questions/QuestionCard'
 import TopicCard from '../components/topics/TopicCard'
@@ -95,32 +96,33 @@ export default function Questions() {
             actions={
                 <div className="flex gap-2">
                     {topicId && (
-                        <button onClick={() => navigate('/topics')} className="btn-secondary px-4 text-[10px] font-black uppercase tracking-widest">
-                            <ChevronLeft size={14} /> Back
-                        </button>
+                        <>
+                            <button onClick={() => navigate('/topics')} className="btn-secondary px-4 text-[10px] font-black uppercase tracking-widest hidden sm:flex">
+                                <ChevronLeft size={14} /> Back
+                            </button>
+                            <button onClick={() => { setTopicName(''); setShowAddSub(true) }} className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-indigo-900/40 text-slate-600 dark:text-indigo-400 px-4 rounded-lg flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all">
+                                <Plus size={14} /> Add Sub
+                            </button>
+                        </>
                     )}
-                    {isShowingSubtopics ? (
-                        <button onClick={() => { setTopicName(''); setShowAddSub(true) }} className="btn-primary px-6 font-bold uppercase tracking-widest text-[10px] bg-indigo-600 hover:bg-indigo-700">
-                            <Plus size={14} /> Add Sub-cluster
-                        </button>
-                    ) : (
-                        <button onClick={() => setShowAdd(true)} className="btn-primary px-6 font-bold uppercase tracking-widest text-[10px]">
-                            <Plus size={14} /> New Question
-                        </button>
-                    )}
+                    <button onClick={() => setShowAdd(true)} className="btn-primary px-6 font-bold uppercase tracking-widest text-[10px]">
+                        <Plus size={14} /> New Question
+                    </button>
                 </div>
             }
         >
-            <div className="space-y-8 animate-in max-w-7xl mx-auto pb-20">
-                {isShowingSubtopics ? (
+            <div className="space-y-10 animate-in max-w-7xl mx-auto pb-20">
+                {isShowingSubtopics && (
                     <div className="space-y-6">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center text-primary-500">
-                                <Layers size={20} />
-                            </div>
-                            <div>
-                                <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Explore Sub-clusters</h2>
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Select a specific branch to view challenges</p>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center text-primary-500">
+                                    <Layers size={20} />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Sub-clusters</h2>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Branches of {currentTopic?.name}</p>
+                                </div>
                             </div>
                         </div>
 
@@ -130,13 +132,17 @@ export default function Questions() {
                                     key={st.id}
                                     topic={st}
                                     stats={topicStats[st.id]}
-                                    canManage={false}
+                                    canManage={user?.id === st.created_by}
+                                    onDelete={() => { }}
+                                    onRename={() => { }}
                                 />
                             ))}
                         </div>
                     </div>
-                ) : (
-                    <>
+                )}
+
+                {!isShowingSubtopics && (
+                    <div className="space-y-8">
                         {/* Filters */}
                         <div className="flex flex-col md:flex-row gap-4">
                             <div className="relative flex-1">
@@ -167,13 +173,21 @@ export default function Questions() {
                                     ))}
                                 </div>
                             ) : (
-                                <div className="text-center py-20 border-2 border-dashed border-slate-100 rounded-xl">
-                                    <BookOpen size={48} className="text-slate-100 dark:text-slate-800 mx-auto mb-4" />
-                                    <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">No challenges found here</span>
+                                <div className="text-center py-20 bg-slate-50/50 dark:bg-slate-900/20 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl">
+                                    <BookOpen size={48} className="text-slate-200 dark:text-slate-800 mx-auto mb-6" />
+                                    <h3 className="text-sm font-black text-slate-400 uppercase tracking-[0.2em] mb-4">No challenges detected</h3>
+                                    <div className="flex items-center justify-center gap-4">
+                                        <button onClick={() => setShowAdd(true)} className="text-[10px] font-black uppercase tracking-widest text-primary-500 hover:text-primary-600">
+                                            + Add Question
+                                        </button>
+                                        <button onClick={() => setShowAddSub(true)} className="text-[10px] font-black uppercase tracking-widest text-indigo-500 hover:text-indigo-600">
+                                            + Add Sub-cluster
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </div>
-                    </>
+                    </div>
                 )}
             </div>
 
@@ -182,17 +196,11 @@ export default function Questions() {
                     topics={topics}
                     initialTopicId={topicId}
                     onSubmit={async (data) => {
-                        // Close modal and show success message eagerly for better UX
                         setShowAdd(false)
                         const toastId = toast.loading('Syncing to group bank...')
-
                         const { error } = await addQuestion({ ...data, created_by: user.id })
-
-                        if (error) {
-                            toast.error(`Sync failed: ${error.message}`, { id: toastId })
-                        } else {
-                            toast.success('✨ Challenge shared with group', { id: toastId })
-                        }
+                        if (error) toast.error(`Sync failed: ${error.message}`, { id: toastId })
+                        else toast.success('✨ Challenge shared with group', { id: toastId })
                     }}
                     onCancel={() => setShowAdd(false)}
                 />
