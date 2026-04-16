@@ -87,11 +87,18 @@ export default function Questions() {
                 <QuestionForm
                     topics={topics}
                     onSubmit={async (data) => {
+                        // Close modal and show success message eagerly for better UX
+                        setShowAdd(false)
+                        const toastId = toast.loading('Syncing to group bank...')
+
                         const { error } = await addQuestion({ ...data, created_by: user.id })
-                        if (error) toast.error(error.message)
-                        else toast.success('✨ New challenge added to pool')
+
+                        if (error) {
+                            toast.error(`Sync failed: ${error.message}`, { id: toastId })
+                        } else {
+                            toast.success('✨ Challenge shared with group', { id: toastId })
+                        }
                     }}
-                    onSuccess={() => setShowAdd(false)}
                     onCancel={() => setShowAdd(false)}
                 />
             </Modal>

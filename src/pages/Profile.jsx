@@ -44,9 +44,11 @@ export default function Profile() {
     }, [topics, questions, statuses])
 
     const handleSave = async () => {
+        setEditing(false)
+        const toastId = toast.loading('Synchronizing identity...')
         const { error } = await updateProfile(form)
-        if (error) toast.error(error.message)
-        else { toast.success('✨ Profile synchronized'); setEditing(false) }
+        if (error) toast.error(`Refraction failed: ${error.message}`, { id: toastId })
+        else toast.success('✨ Profile synchronized', { id: toastId })
     }
 
     const avatarLetter = (profile?.name || user?.email || 'U')[0].toUpperCase()

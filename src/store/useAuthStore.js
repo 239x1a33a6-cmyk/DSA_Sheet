@@ -8,12 +8,9 @@ export const useAuthStore = create((set, get) => ({
     error: null,
 
     initialize: async () => {
-        console.log('🗝️ Auth: Initializing session...')
-
         // Safety timeout for initialization
         const timeout = setTimeout(() => {
             if (get().loading) {
-                console.warn('🕒 Auth: Initialization taking too long. Forcing loading state to false.')
                 set({ loading: false })
             }
         }, 8000)
@@ -21,22 +18,18 @@ export const useAuthStore = create((set, get) => ({
         try {
             const { data: { session }, error } = await supabase.auth.getSession()
             if (error) {
-                console.error('❌ Auth: Session fetch error:', error)
                 set({ loading: false })
                 return
             }
 
             if (session?.user) {
-                console.log('👤 Auth: Session restored for:', session.user.email)
                 set({ user: session.user, loading: false })
                 get().fetchProfile(session.user.id)
             } else {
-                console.log('🚪 Auth: No active session found.')
                 set({ loading: false })
             }
 
-            supabase.auth.onAuthStateChange(async (event, session) => {
-                console.log('🔄 Auth: State change event:', event)
+            supabase.auth.onAuthStateChange(async (_event, session) => {
                 if (session?.user) {
                     set({ user: session.user })
                     get().fetchProfile(session.user.id)
@@ -45,7 +38,6 @@ export const useAuthStore = create((set, get) => ({
                 }
             })
         } catch (err) {
-            console.error('💥 Auth: Critical initialization failure:', err)
             set({ loading: false })
         } finally {
             clearTimeout(timeout)

@@ -48,28 +48,40 @@ export default function Topics() {
 
     const handleAddTopic = async (e) => {
         e.preventDefault()
-        if (!topicName.trim()) return
+        const name = topicName.trim()
+        if (!name) return
 
-        if (topics.some(t => t.name.toLowerCase() === topicName.trim().toLowerCase())) {
+        if (topics.some(t => t.name.toLowerCase() === name.toLowerCase())) {
             return toast.error('Topic already exists in records')
         }
 
-        const { error } = await addTopic(topicName.trim(), user?.id)
-        if (error) toast.error(error.message)
-        else { toast.success('✨ New topic established'); setTopicName(''); setShowAdd(false) }
+        // Eager UI updates
+        setShowAdd(false)
+        setTopicName('')
+        const toastId = toast.loading('Establishing cluster...')
+
+        const { error } = await addTopic(name, user?.id)
+        if (error) toast.error(`Refraction failed: ${error.message}`, { id: toastId })
+        else toast.success('✨ New cluster established', { id: toastId })
     }
 
     const handleRename = async (e) => {
         e.preventDefault()
-        if (!topicName.trim() || !selectedTopic) return
+        const name = topicName.trim()
+        if (!name || !selectedTopic) return
 
-        if (topics.some(t => t.id !== selectedTopic.id && t.name.toLowerCase() === topicName.trim().toLowerCase())) {
+        if (topics.some(t => t.id !== selectedTopic.id && t.name.toLowerCase() === name.toLowerCase())) {
             return toast.error('Topic name conflict')
         }
 
-        const { error } = await updateTopic(selectedTopic.id, topicName.trim())
-        if (error) toast.error(error.message)
-        else { toast.success('✨ Topic refactored'); setShowRename(false); setSelectedTopic(null) }
+        // Eager UI updates
+        setShowRename(false)
+        setSelectedTopic(null)
+        const toastId = toast.loading('Applying refactor...')
+
+        const { error } = await updateTopic(selectedTopic.id, name)
+        if (error) toast.error(`Update failed: ${error.message}`, { id: toastId })
+        else toast.success('✨ Cluster refactored', { id: toastId })
     }
 
     const handleDelete = async (topic) => {
