@@ -29,10 +29,19 @@ export const useAuthStore = create((set, get) => ({
                 set({ loading: false })
             }
 
-            supabase.auth.onAuthStateChange(async (_event, session) => {
+            supabase.auth.onAuthStateChange(async (event, session) => {
                 if (session?.user) {
                     set({ user: session.user })
                     get().fetchProfile(session.user.id)
+
+                    // Log login or session restoration
+                    if (event === 'SIGNED_IN') {
+                        await supabase.from('activity_log').insert({
+                            user_id: session.user.id,
+                            type: 'login',
+                            details: { event, email: session.user.email }
+                        })
+                    }
                 } else {
                     set({ user: null, profile: null })
                 }
@@ -68,6 +77,16 @@ export const useAuthStore = create((set, get) => ({
         set({ error: null })
         const { data, error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) { set({ error: error.message }); return { error } }
+
+        // Log activity
+        if (data?.user) {
+            await supabase.from('activity_log').insert({
+                user_id: data.user.id,
+                type: 'login',
+                details: { method: 'password', email: data.user.email }
+            })
+        }
+
         return { data }
     },
 
@@ -77,6 +96,9 @@ export const useAuthStore = create((set, get) => ({
             options: { redirectTo: window.location.origin },
         })
         if (error) set({ error: error.message })
+        // Note: Google login activity is usually logged on the redirect-back initialize check
+        // but we can add it here as an 'attempt' if needed. The actual session establishment 
+        // is captured in initialize/onAuthStateChange.
     },
 
     signOut: async () => {

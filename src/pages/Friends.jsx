@@ -12,12 +12,49 @@ export default function Friends() {
     const [search, setSearch] = useState('')
     const [searchResult, setSearchResult] = useState(null)
     const [searching, setSearching] = useState(false)
+    const [discovery, setDiscovery] = useState([])
 
     useEffect(() => {
         if (!user) return
         fetchFriends()
         fetchPending()
+        fetchDiscovery()
+
+        // Real-time subscription for friendships
+        const channel = supabase
+            .channel('friendship-changes')
+            .on('postgres_changes', {
+                event: '*',
+                table: 'friendships'
+            }, (payload) => {
+                const { old, new: next } = payload
+                const relevant = (old?.user_id === user.id || old?.friend_id === user.id ||
+                    next?.user_id === user.id || next?.friend_id === user.id)
+                if (relevant) {
+                    fetchFriends()
+                    fetchPending()
+                    fetchDiscovery()
+                }
+            })
+            .subscribe()
+
+        return () => supabase.removeChannel(channel)
     }, [user])
+
+    const fetchDiscovery = async () => {
+        // Fetch all profiles but exclude self and current connections
+        const { data: allProfiles } = await supabase.from('profiles').select('id,name,email').neq('id', user.id).limit(20)
+
+        const { data: connections } = await supabase
+            .from('friendships')
+            .select('user_id, friend_id')
+            .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
+
+        const connectedIds = new Set(connections?.flatMap(c => [c.user_id, c.friend_id]) || [])
+
+        const discovery = allProfiles?.filter(p => !connectedIds.has(p.id)) || []
+        setDiscovery(discovery)
+    }
 
     const fetchFriends = async () => {
         const { data } = await supabase
@@ -195,6 +232,33 @@ export default function Friends() {
                         </div>
                     </div>
                 </div>
+
+                {/* Discovery Section */}
+                {discovery.length > 0 && (
+                    <div className="space-y-6">
+                        <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] px-1 flex items-center gap-3">
+                            <Zap size={14} className="text-purple-500" /> Discover Potential Connections
+                        </h2>
+                        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
+                            {discovery.map(p => (
+                                <div key={p.id} className="card p-6 border-none shadow-md hover:shadow-xl transition-all dark:bg-slate-900 group">
+                                    <div className="flex flex-col items-center text-center space-y-4">
+                                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 text-xl font-black group-hover:scale-110 transition-transform shadow-inner">
+                                            {avatarLetter(p.name, p.email)}
+                                        </div>
+                                        <div className="min-w-0">
+                                            <div className="text-sm font-black text-slate-900 dark:text-white truncate max-w-[150px]">{p.name || 'Anonymous Solver'}</div>
+                                            <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest truncate max-w-[150px]">{p.email}</div>
+                                        </div>
+                                        <button onClick={() => sendRequest(p.id)} className="btn-secondary w-full py-2 rounded-xl text-[9px] font-black uppercase tracking-widest group-hover:bg-primary-500 group-hover:text-white group-hover:border-primary-500 transition-all">
+                                            <UserPlus size={12} className="mr-2" /> Connect
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
         </Layout>
     )

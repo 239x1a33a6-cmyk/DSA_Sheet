@@ -30,15 +30,25 @@ export default function Topics() {
 
     const topicStats = useMemo(() => {
         const map = {}
+
+        const getRecursiveQs = (tid) => {
+            let directQs = questions.filter(q => q.topic_id === tid)
+            const children = topics.filter(t => t.parent_id === tid)
+            children.forEach(child => {
+                directQs = [...directQs, ...getRecursiveQs(child.id)]
+            })
+            return directQs
+        }
+
         topics.forEach(t => {
-            const qs = questions.filter(q => q.topic_id === t.id)
-            const contributors = new Set(qs.map(q => q.created_by).filter(Boolean))
+            const allQs = getRecursiveQs(t.id)
+            const contributors = new Set(allQs.map(q => q.created_by).filter(Boolean))
 
             map[t.id] = {
-                total: qs.length,
-                solved: qs.filter(q => statuses[q.id]?.status === 'solved').length,
-                revisit: qs.filter(q => statuses[q.id]?.status === 'revisit').length,
-                hard: qs.filter(q => statuses[q.id]?.status === 'hard').length,
+                total: allQs.length,
+                solved: allQs.filter(q => statuses[q.id]?.status === 'solved').length,
+                revisit: allQs.filter(q => statuses[q.id]?.status === 'revisit').length,
+                hard: allQs.filter(q => statuses[q.id]?.status === 'hard').length,
                 contributors: contributors.size
             }
         })
@@ -91,14 +101,17 @@ export default function Topics() {
 
     const handleDelete = async (topic) => {
         const stats = topicStats[topic.id]
-        if (stats?.total > 0) {
-            return toast.error('Safety Lock: Topic contains challenges and cannot be purged.')
-        }
+        const hasContent = stats?.total > 0
+        const message = hasContent
+            ? `🔥 WARNING: "${topic.name}" contains ${stats.total} challenges. Purging this cluster will ERASE ALL nested challenges and sub-clusters. Continue?`
+            : `🔥 Purge knowledge cluster "${topic.name}"?`
 
-        if (!confirm(`🔥 Purge topic "${topic.name}"?`)) return
+        if (!confirm(message)) return
+
+        const toastId = toast.loading('Erasing cluster...')
         const { error } = await deleteTopic(topic.id)
-        if (error) toast.error(error.message)
-        else toast.success('🗑️ Topic erased')
+        if (error) toast.error(`Deletion failed: ${error.message}`, { id: toastId })
+        else toast.success('🗑️ Cluster erased from knowledge base', { id: toastId })
     }
 
     const openRename = (topic) => {

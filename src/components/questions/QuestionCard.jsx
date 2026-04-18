@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ExternalLink, Bookmark, BookmarkCheck, Calendar, Hash, Users, User as UserIcon, MessageSquare } from 'lucide-react'
+import { ExternalLink, Bookmark, BookmarkCheck, Calendar, Hash, Users, User as UserIcon, MessageSquare, Trash2 } from 'lucide-react'
 import StatusToggle from '../ui/StatusToggle'
 import { STATUS, DIFFICULTY } from '../../utils/constants'
 import { useAuthStore } from '../../store/useAuthStore'
@@ -24,7 +24,7 @@ const LeetCodeIcon = ({ size = 16 }) => (
 
 export default function QuestionCard({ question, showTopic = false }) {
     const { user } = useAuthStore()
-    const { statuses, setStatus, toggleBookmark, fetchQuestionSolvers, questionSolvers } = useQuestionStore()
+    const { statuses, setStatus, toggleBookmark, fetchQuestionSolvers, questionSolvers, deleteQuestion } = useQuestionStore()
     const navigate = useNavigate()
 
     const qStatus = statuses[question.id]
@@ -53,6 +53,15 @@ export default function QuestionCard({ question, showTopic = false }) {
         if (!user) return
         await toggleBookmark(user.id, question.id)
         toast.success(isBookmarked ? '🔖 Removed bookmark' : '🔖 Bookmarked!')
+    }
+
+    const handleDelete = async (e) => {
+        e.stopPropagation()
+        if (!confirm('🔥 Purge this challenge?')) return
+        const toastId = toast.loading('Deleting...')
+        const { error } = await deleteQuestion(question.id)
+        if (error) toast.error(error.message, { id: toastId })
+        else toast.success('🗑️ Challenge erased', { id: toastId })
     }
 
     const lastUpdated = qStatus?.last_updated
@@ -113,6 +122,11 @@ export default function QuestionCard({ question, showTopic = false }) {
                                         {isLeetCode ? <LeetCodeIcon size={16} /> : <ExternalLink size={16} />}
                                     </a>
                                 )}
+                                {user?.id === question.created_by && (
+                                    <button onClick={handleDelete} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-500 transition-colors">
+                                        <Trash2 size={16} />
+                                    </button>
+                                )}
                             </div>
                         </div>
 
@@ -122,9 +136,9 @@ export default function QuestionCard({ question, showTopic = false }) {
                                 {addedBy.split(' ')[0]}
                             </span>
                             {solvers.length > 0 && (
-                                <span className="flex items-center gap-1.5 text-emerald-600/70 dark:text-emerald-400/70">
-                                    <Users size={12} />
-                                    {solvers.length} Solved
+                                <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-black">
+                                    <Users size={12} strokeWidth={3} />
+                                    {solvers.length} SOLVED
                                 </span>
                             )}
                             {lastUpdated && (

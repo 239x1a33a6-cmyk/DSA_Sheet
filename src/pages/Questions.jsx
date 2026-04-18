@@ -53,13 +53,23 @@ export default function Questions() {
 
     const topicStats = useMemo(() => {
         const map = {}
+
+        const getRecursiveQs = (tid) => {
+            let directQs = questions.filter(q => q.topic_id === tid)
+            const children = topics.filter(t => t.parent_id === tid)
+            children.forEach(child => {
+                directQs = [...directQs, ...getRecursiveQs(child.id)]
+            })
+            return directQs
+        }
+
         topics.forEach(t => {
-            const qs = questions.filter(q => q.topic_id === t.id)
-            const contributors = new Set(qs.map(q => q.created_by).filter(Boolean))
+            const allQs = getRecursiveQs(t.id)
+            const contributors = new Set(allQs.map(q => q.created_by).filter(Boolean))
 
             map[t.id] = {
-                total: qs.length,
-                solved: qs.filter(q => statuses[q.id]?.status === 'solved').length,
+                total: allQs.length,
+                solved: allQs.filter(q => statuses[q.id]?.status === 'solved').length,
                 contributors: contributors.size
             }
         })
@@ -94,6 +104,21 @@ export default function Questions() {
         } else {
             toast.success('✨ Sub-cluster launched', { id: toastId })
         }
+    }
+
+    const handleDeleteSubtopic = async (topic) => {
+        const stats = topicStats[topic.id]
+        const hasContent = stats?.total > 0
+        const message = hasContent
+            ? `🔥 WARNING: "${topic.name}" contains ${stats.total} challenges. Purging this cluster will ERASE ALL nested challenges and sub-clusters. Continue?`
+            : `🔥 Purge sub-cluster "${topic.name}"?`
+
+        if (!confirm(message)) return
+
+        const toastId = toast.loading('Purging cluster...')
+        const { error } = await deleteTopic(topic.id)
+        if (error) toast.error(`Purge failed: ${error.message}`, { id: toastId })
+        else toast.success('🗑️ Cluster erased from network', { id: toastId })
     }
 
     return (
@@ -136,8 +161,8 @@ export default function Questions() {
                                     key={st.id}
                                     topic={st}
                                     stats={topicStats[st.id]}
-                                    canManage={user?.id === st.created_by}
-                                    onDelete={() => { }}
+                                    canManage={user?.id === st.created_by || user?.id === currentTopic?.created_by}
+                                    onDelete={handleDeleteSubtopic}
                                     onRename={() => { }}
                                 />
                             ))}
