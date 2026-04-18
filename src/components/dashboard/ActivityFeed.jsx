@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useActivityStore } from '../../store/useActivityStore'
-import { Clock, Plus, Check, Zap } from 'lucide-react'
+import { Clock, Plus, Check, Zap, LogIn } from 'lucide-react'
 
 export default function ActivityFeed() {
     const { activities, loading, fetchActivities, subscribe } = useActivityStore()
@@ -40,11 +40,29 @@ export default function ActivityFeed() {
             ) : (
                 <div className="space-y-8 relative">
                     {activities.map((item) => {
-                        const isSolved = item.action === 'solved_question'
+                        const isLogin = item.type === 'login'
+                        const isSolved = item.type === 'solved_question' || item.action === 'solved_question'
+
+                        let bgColor = 'bg-primary-500'
+                        let Icon = Plus
+                        let actionLabel = 'shared'
+                        let detail = item.questions?.title || 'a challenge'
+
+                        if (isLogin) {
+                            bgColor = 'bg-indigo-500'
+                            Icon = LogIn
+                            actionLabel = 'entered the arena'
+                            detail = ''
+                        } else if (isSolved) {
+                            bgColor = 'bg-emerald-500'
+                            Icon = Check
+                            actionLabel = 'mastered'
+                        }
+
                         return (
                             <div key={item.id} className="flex gap-4 group">
-                                <div className={`relative z-10 w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm transition-transform group-hover:scale-110 ${isSolved ? 'bg-emerald-500 text-white' : 'bg-primary-500 text-white'}`}>
-                                    {isSolved ? <Check size={14} strokeWidth={3} /> : <Plus size={14} strokeWidth={3} />}
+                                <div className={`relative z-10 w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm transition-transform group-hover:scale-110 ${bgColor} text-white`}>
+                                    <Icon size={14} strokeWidth={3} />
                                 </div>
                                 <div className="flex-1 min-w-0 pt-0.5">
                                     <p className="text-sm text-slate-600 dark:text-slate-300 leading-snug">
@@ -53,12 +71,14 @@ export default function ActivityFeed() {
                                         </span>
                                         {' '}
                                         <span className="font-bold text-slate-400 uppercase text-[10px] tracking-wider">
-                                            {isSolved ? 'mastered' : 'shared'}
+                                            {actionLabel}
                                         </span>
                                         {' '}
-                                        <span className="font-black text-primary-600 dark:text-primary-400 hover:underline cursor-pointer">
-                                            {item.questions?.title || 'a challenge'}
-                                        </span>
+                                        {detail && (
+                                            <span className="font-black text-primary-600 dark:text-primary-400 hover:underline cursor-pointer">
+                                                {detail}
+                                            </span>
+                                        )}
                                     </p>
                                     <div className="text-[9px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest mt-1.5 flex items-center gap-2">
                                         <Clock size={10} strokeWidth={3} />
